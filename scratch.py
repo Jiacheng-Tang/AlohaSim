@@ -1,13 +1,20 @@
 from numpy import random
 import numpy as np
 
-"""Slotted Aloha 1-channel"""
+
 def run_sim1(p, num_user):
+    """Slotted Aloha 1-channel"""
     outcome = 0
     if sum(random.binomial(1, p, num_user)) == 1:
         outcome = num_user - 1
     else:
         outcome = num_user
+    return outcome
+
+
+def run_simN(p, num_user, num_channel):
+    """Slotted Aloha N-channel"""
+    outcome = 0
     return outcome
 
 
@@ -18,9 +25,10 @@ def RL_MonteCarlo1(n_episode, T):
     num_S = len(S_space)
     num_A = len(A_space)
     policy = np.tile(np.repeat(1 / num_A, num_A), (num_S, 1))
-    delta = 0.5
+    delta = 0.8
     Qn = np.zeros((num_S, num_A))
     Q = np.zeros((num_S, num_A))
+    print(num_S * num_A)
 
     for k in range(n_episode):
         """Define state, action, and reward with exploring start"""
@@ -50,9 +58,15 @@ def RL_MonteCarlo1(n_episode, T):
                 Qn[iSt][iAt] += 1
 
         """Policy improvement"""
-
-
-    return Q
+        for i in range(num_S):
+            a_star = np.amax(Q[i])
+            ia_star = np.where(Q[i] == a_star)
+            mask = np.zeros(num_A, dtype=bool)
+            mask[ia_star] = True
+            policy[i][mask] = 1 / len(ia_star[0])
+            policy[i][~mask] = 0
+            # print(policy[i])
+    return Q, policy
 
 
 if __name__ == "__main__":
@@ -62,5 +76,6 @@ if __name__ == "__main__":
     # for i in range(num_steps):
     #     num_user = run_sim1(p, num_user)
     #     print(num_user)
-    Q = RL_MonteCarlo1(1000, 10)
-    print(Q)
+    Q, policy = RL_MonteCarlo1(1000, 10)
+    # print(Q)
+    print(policy)
