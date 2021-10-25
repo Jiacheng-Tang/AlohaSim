@@ -28,7 +28,6 @@ def RL_MonteCarlo1(n_episode, T):
     delta = 0.8
     Qn = np.zeros((num_S, num_A))
     Q = np.zeros((num_S, num_A))
-    print(num_S * num_A)
 
     for k in range(n_episode):
         """Define state, action, and reward with exploring start"""
@@ -65,17 +64,10 @@ def RL_MonteCarlo1(n_episode, T):
             mask[ia_star] = True
             policy[i][mask] = 1 / len(ia_star[0])
             policy[i][~mask] = 0
-            # print(policy[i])
     return Q, policy
 
 
 if __name__ == "__main__":
-    # num_steps = 10
-    # p = 0.1
-    # num_user = 10
-    # for i in range(num_steps):
-    #     num_user = run_sim1(p, num_user)
-    #     print(num_user)
     Q, policy = RL_MonteCarlo1(1000, 10)
-    # print(Q)
+    print(Q)
     print(policy)
