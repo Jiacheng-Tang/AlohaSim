@@ -1,53 +1,51 @@
 from numpy import random
 import numpy as np
+from main import *
+from nn import *
 
 
-def run_sim1(p, num_user):
-    """Slotted Aloha 1-channel"""
-    outcome = 0
-    if sum(random.binomial(1, p, num_user)) == 1:
-        outcome = num_user - 1
-    else:
-        outcome = num_user
-    return outcome
-
-
-def run_simN(p, num_user, num_channel):
-    """Slotted Aloha N-channel"""
-    outcome = 0
-    return outcome
-
-
-def RL_MonteCarlo1(n_episode, T):
+def RL_MonteCarloNN(n_episode, T):
     """Define Variables"""
     S_space = np.arange(0, 10)
-    A_space = 1 / np.arange(1, 20)
     num_S = len(S_space)
-    num_A = len(A_space)
-    policy = np.tile(np.repeat(1 / num_A, num_A), (num_S, 1))
-    delta = 0.8
-    Qn = np.zeros((num_S, num_A))
-    Q = np.zeros((num_S, num_A))
+    policy = random.uniform(0, 1, num_S)
+    delta = 0.5
+
+    """Define neural network (normalized input)"""
+    NN_PARAMETER = {
+        'input_dim': 2,
+        'layers': 8,
+        'width': 1,
+        'lr': 0.01,
+        'positive': False,
+        'epochs': T,
+        'tol': 1e-4,
+        'input_range': (0, 1)
+    }
+    Qnn = NeuralNetwork(NN_PARAMETER)
 
     for k in range(n_episode):
         """Define state, action, and reward with exploring start"""
         S = np.repeat(0, T)
-        A = np.repeat(0.0, T)
+        A = np.repeat(0.5, T)
         R = np.repeat(0, T)
         S[0] = random.choice(S_space, p=np.repeat(1 / num_S, num_S))
-        A[0] = random.choice(A_space, p=np.repeat(1 / num_A, num_A))
+        A[0] = random.uniform(0, 1, 1)
         R[0] = -run_sim1(A[0], S[0])
 
         """Generate an episode following given policy"""
         for t in range(1, T):
             S[t] = -R[t - 1]
             iSt = np.where(S_space == S[t])[0].item()
-            A[t] = random.choice(A_space, p=policy[iSt])
+            A[t] = policy[iSt]
             R[t] = -run_sim1(A[t], S[t])
+            if S[t] == 0:
+                break
 
         """Monte Carlo prediction with Q-values"""
         SA = np.concatenate((S, A)).reshape((-1, 2), order='F')
         G = 0
+        NNin = np.empty((0,3))
         for t in range(T - 1, -1, -1):
             G = delta * G + R[t]
             if not any((SA[0:t - 1] == SA[t]).all(1)):
@@ -65,9 +63,3 @@ def RL_MonteCarlo1(n_episode, T):
             policy[i][mask] = 1 / len(ia_star[0])
             policy[i][~mask] = 0
     return Q, policy
-
-
-if __name__ == "__main__":
-    Q, policy = RL_MonteCarlo1(1000, 10)
-    print(Q)
-    print(policy)
