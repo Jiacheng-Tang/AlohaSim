@@ -26,14 +26,13 @@ def run_simN(p, num_user,etaC):
 def RL_MonteCarloTabular(n_episode, T, epsilon):
     """Define Variables"""
     S_space = np.arange(0, 10)
-    A_space = 1 / np.arange(1, 10)
+    A_space = 1 / np.arange(1, 15)
     num_S = len(S_space)
     num_A = len(A_space)
     policy = np.tile(np.repeat(1 / num_A, num_A), (num_S, 1))
     delta = 0.5
     Qn = np.zeros((num_S, num_A))
     Q = np.zeros((num_S, num_A))
-    Qold = np.zeros((num_S, num_A))
 
     for k in range(n_episode):
         """Define state, action, and reward with exploring start"""
@@ -41,11 +40,10 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
         A = np.repeat(0.5, T)
         R = np.repeat(0, T)
         # S[0] = random.choice(S_space, p=np.repeat(1 / num_S, num_S))
-        # S[0] = random.choice(S_space, p=S_space/sum(S_space))
-        S[0] = 9
+        S[0] = random.choice(S_space, p=S_space/sum(S_space))
         A[0] = random.choice(A_space, p=np.repeat(1 / num_A, num_A))
-        R[0] = -run_sim1(A[0], S[0])
-        # R[0] = -run_simN(A[0], S[0], 2)
+        # R[0] = -run_sim1(A[0], S[0])
+        R[0] = -run_simN(A[0], S[0], 2)
 
         """Generate an episode following given policy"""
         for t in range(1, T):
@@ -55,8 +53,8 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
                 A[t] = random.choice(A_space, p=policy[iSt])
             else:
                 A[t] = random.choice(A_space, p=np.repeat(1 / num_A, num_A))
-            R[t] = -run_sim1(A[t], S[t])
-            # R[t] = -run_simN(A[t], S[t], 2)
+            # R[t] = -run_sim1(A[t], S[t])
+            R[t] = -run_simN(A[t], S[t], 2)
             if S[t] == 0:
                 break
 
@@ -80,20 +78,11 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
             policy[i][mask] = 1 / len(ia_star[0])
             policy[i][~mask] = 0
 
-        """Stop if Q doesn't change"""
-        Qerr = np.max(np.abs(Q - Qold))
-        if k % 100 == 0:
-            Qold = Q.copy()
-            print([k, Qerr])
-            if Qerr < 0.001:
-                break
-
-    print(Q)
     print(Qn)
-    print(policy)
     return Q, policy
 
 
 if __name__ == "__main__":
-    Q, policy = RL_MonteCarloTabular(100000, 50, 0.3)
-
+    Q, policy = RL_MonteCarloTabular(10000, 50, 0.3)
+    # print(Q)
+    print(policy)

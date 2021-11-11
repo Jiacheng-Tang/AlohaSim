@@ -16,7 +16,7 @@ import shutil
 from torch.nn.parameter import Parameter
 
 LOG_FLAG = False
-DEVICE = tc.device("cuda:1" if tc.cuda.is_available() else "cpu")
+DEVICE = tc.device("cuda:0" if tc.cuda.is_available() else "cpu")
 # tc.set_default_tensor_type('torch.cuda.FloatTensor')
 
 class Net(nn.Module):
@@ -59,8 +59,8 @@ class NeuralNetwork(object):
         self.zero_pos = np.any(self.input_range[0]>0) and np.any(self.input_range[1]>0)
         self.input_range = tc.from_numpy(self.input_range).to(self.device).float()
 
-        self.model_name = f'cache/init_model_{datetime.now().strftime("%m%d%H%M%S")}'
-        tc.save(self.nn.state_dict(), self.model_name)
+        # self.model_name = f'cache/init_model_{datetime.now().strftime("%m%d%H%M%S")}'
+        # tc.save(self.nn.state_dict(), self.model_name)
 
         self.epochs = parameter['epochs']
 
@@ -113,7 +113,7 @@ class NeuralNetwork(object):
             if LOG_FLAG:
                 loss_data[_] = loss.cpu().detach().float()
 
-            if _ % 100 == 0:
+            if _ % 1000 == 0:
                 print(f'eps: {_} -- {loss}')
         self.loss_final = loss
         print(f'complete: total eps: {_} -- {loss}')
@@ -143,11 +143,11 @@ class NeuralNetwork(object):
 if __name__ == '__main__':
     # tc.device('cuda:0')
 
-    DIM = 1000
+    DIM = 10
     # x = tc.rand((10,DIM))
     # y = tc.matmul(x, tc.ones(DIM))
-    x = tc.rand((5000, DIM))
-    y = tc.tensor([x[_].dot(x[_]) for _ in range(5000)])
+    x = tc.rand((5000, DIM)).to('cuda')
+    y = tc.tensor([x[_].dot(x[_]) for _ in range(5000)]).to('cuda')
 
     NN_PARAMETER = {
         'input_dim': DIM,
@@ -159,6 +159,8 @@ if __name__ == '__main__':
         'tol': 1e-4,
         'input_range': (0, 1)
     }
+    print(x)
+    print(y)
 
     n = NeuralNetwork(NN_PARAMETER)
     n.train(x,y)
