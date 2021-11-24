@@ -32,10 +32,19 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
     """Define Variables"""
     S_space = np.arange(0, 10)
     A_space = 1 / np.arange(1, 15)
+
+    """N-channel Variables"""
+    etaC = 2
+    S_max = 35
+    A_max = 50
+
+    S_space = np.arange(0,S_max+1)
+    A_space = etaC / np.arange(etaC, A_max+1)
+
     num_S = len(S_space)
     num_A = len(A_space)
     policy = np.tile(np.repeat(1 / num_A, num_A), (num_S, 1))
-    delta = 0.5
+    delta = 0
     Qn = np.zeros((num_S, num_A))
     Q = np.zeros((num_S, num_A))
     Qold = np.zeros((num_S, num_A))
@@ -47,9 +56,10 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
         A = np.repeat(0.5, T)
         R = np.repeat(0, T)
         # S[0] = random.choice(S_space, p=S_space/sum(S_space))
-        S[0] = 9
+        S[0] = 15
         A[0] = random.choice(A_space, p=np.repeat(1 / num_A, num_A))
-        Sp, R[0] = run_sim1(S[0], A[0])
+        # Sp, R[0] = run_sim1(S[0], A[0])
+        Sp, R[0] = run_simN(S[0], A[0], etaC)
 
         """Generate an episode following given policy"""
         for t in range(1, T):
@@ -59,8 +69,8 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
                 A[t] = random.choice(A_space, p=policy[iSt])
             else:
                 A[t] = random.choice(A_space, p=np.repeat(1 / num_A, num_A))
-            Sp, R[t] = run_sim1(S[t], A[t])
-            # R[t] = -run_simN(A[t], S[t], 2)
+            # Sp, R[t] = run_sim1(S[t], A[t])
+            Sp, R[t] = run_simN(S[t], A[t], etaC)
             if S[t] == 0:
                 break
 
@@ -90,16 +100,24 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
             print([k, Qerr])
             for i in range(num_S):
                 V[i] = np.sum(Q[i] * policy[i])
-            print(V)
+            # print(V)
             Qold = Q.copy()
-            if Qerr < 0.001:
+            if Qerr < 0.002:
                 break
 
-    print(Qn)
+
+    # print(Qn)
     print(Q)
-    print(policy)
+    print(V)
+    for i in range(1, num_S):
+        print([i, A_space[policy[i]!=0].item()])
     return Q, policy
 
 
 if __name__ == "__main__":
-    Q, policy = RL_MonteCarloTabular(100, 50, 0.3)
+    Q, policy = RL_MonteCarloTabular(200000, 50, 0.3)
+
+    import winsound
+    duration = 1000  # milliseconds
+    freq = 440  # Hz
+    winsound.Beep(freq, duration)
