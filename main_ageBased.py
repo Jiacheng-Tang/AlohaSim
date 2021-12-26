@@ -9,7 +9,7 @@ import time
 AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 4, 0, 3
 THRESHOLD, STEPS = 3, 2
 MU, SIGMA = 2, 0.5
-DELTA = 0.1
+DELTA = 0.8
 
 def sys_update(age, action):
     arrival = stats.truncnorm((ARRIVAL_MIN - MU) / SIGMA, (ARRIVAL_MAX - MU) / SIGMA, loc=MU, scale=SIGMA)
