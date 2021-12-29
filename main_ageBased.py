@@ -11,29 +11,31 @@ THRESHOLD, STEPS = 3, 2
 MU, SIGMA = 2, 0.5
 DELTA = 0.8
 
+
 def sys_update(age, action):
     arrival = stats.truncnorm((ARRIVAL_MIN - MU) / SIGMA, (ARRIVAL_MAX - MU) / SIGMA, loc=MU, scale=SIGMA)
     t1 = action[0]
     t2 = action[1]
-    if sum(age[np.arange(t1,t2-1)]) <= THRESHOLD:
-        reward = sum((AGE_MAX-np.arange(t1, t2-1))*age[np.arange(t1,t2-1)])
+    if sum(age[np.arange(t1, t2 - 1)]) <= THRESHOLD:
+        reward = sum((AGE_MAX - np.arange(t1, t2 - 1)) * age[np.arange(t1, t2 - 1)])
         # print(reward)
-        age[np.arange(t1, t2-1)] = 0
+        age[np.arange(t1, t2 - 1)] = 0
     else:
         reward = 0
     # print(sum(age[-min(t2,steps):]))
-    reward = reward - sum(age[-min(t2,STEPS):])
+    reward = reward - sum(age[-min(t2, STEPS):])
     age[STEPS:] = age[0:-STEPS]
     age[0:STEPS] = np.round(arrival.rvs(STEPS))
 
     # print(age, reward)
     return age, reward
 
+
 def RL_MonteCarloTabular(n_episode, T, epsilon):
     """Define Variables"""
-    S_space = np.array(list(itertools.product(*np.repeat([np.arange(0, ARRIVAL_MAX+1)], AGE_MAX, axis=0))))
-    A_space = np.array(list(itertools.combinations(range(1,AGE_MAX+2),2)))
-    A_space[:,0] = A_space[:,0]-1
+    S_space = np.array(list(itertools.product(*np.repeat([np.arange(0, ARRIVAL_MAX + 1)], AGE_MAX, axis=0))))
+    A_space = np.array(list(itertools.combinations(range(1, AGE_MAX + 2), 2)))
+    A_space[:, 0] = A_space[:, 0] - 1
     num_S = len(S_space)
     num_A = len(A_space)
 
@@ -46,23 +48,23 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
     for k in range(n_episode):
         """Define state, action, and reward with exploring start"""
         S = np.repeat([np.zeros(AGE_MAX)], T, axis=0).astype(int)
-        A = np.repeat([[0,2]], T, axis=0)
+        A = np.repeat([[0, 2]], T, axis=0)
         R = np.repeat(0, T)
-        S[0,:] = S_space[random.randint(0,num_S),:]
-        A[0,:] = A_space[random.randint(0,num_A),:]
-        Sp, R[0] = sys_update(S[0,:].copy(), A[0,:])
+        S[0, :] = S_space[random.randint(0, num_S), :]
+        A[0, :] = A_space[random.randint(0, num_A), :]
+        Sp, R[0] = sys_update(S[0, :].copy(), A[0, :])
         # print(S[0,:], A[0,:], R[0])
 
         """Generate an episode following given policy"""
         for t in range(1, T):
-            S[t,:] = Sp
-            iSt = np.where(np.all(S_space == S[t,:],axis=1))[0].item()
+            S[t, :] = Sp
+            iSt = np.where(np.all(S_space == S[t, :], axis=1))[0].item()
             if random.uniform(0, 1, 1) > epsilon:
                 iAt = random.choice(np.arange(num_A), p=policy[iSt])
-                A[t,:] = A_space[iAt,:]
+                A[t, :] = A_space[iAt, :]
             else:
-                A[t,:] = A_space[random.randint(0,num_A),:]
-            Sp, R[t] = sys_update(S[t,:].copy(), A[t,:])
+                A[t, :] = A_space[random.randint(0, num_A), :]
+            Sp, R[t] = sys_update(S[t, :].copy(), A[t, :])
             # print(S[t, :], A[t, :], R[t])
 
         """Monte Carlo prediction with Q-values"""
@@ -71,9 +73,9 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
         G = 0
         for t in range(T - 1, -1, -1):
             G = DELTA * G + R[t]
-            if not any(np.all((SA[0:t - 1,:] == SA[t,:]),axis=1)):
-                iSt = np.where(np.all(S_space == S[t,:],axis=1))[0].item()
-                iAt = np.where(np.all(A_space == A[t,:],axis=1))[0].item()
+            if not any(np.all((SA[0:t - 1, :] == SA[t, :]), axis=1)):
+                iSt = np.where(np.all(S_space == S[t, :], axis=1))[0].item()
+                iAt = np.where(np.all(A_space == A[t, :], axis=1))[0].item()
                 Q[iSt][iAt] = (Q[iSt][iAt] * Qn[iSt][iAt] + G) / (Qn[iSt][iAt] + 1)
                 Qn[iSt][iAt] += 1
 
@@ -102,13 +104,49 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
     header_S = ["--".join(items) for items in S_space.astype(str)]
     timestr = time.strftime("%Y%m%d-%H%M%S")
     Q_df = pd.DataFrame(Q, index=header_S, columns=header_A)
-    Q_df.to_csv('./log/Q_'+timestr+'.csv', index=True, header=True)
+    Q_df.to_csv('./log/Q_' + timestr + '.csv', index=True, header=True)
     Qn_df = pd.DataFrame(Qn, index=header_S, columns=header_A)
-    Qn_df.to_csv('./log/Qn_'+timestr+'.csv', index=True, header=True)
+    Qn_df.to_csv('./log/Qn_' + timestr + '.csv', index=True, header=True)
     V_df = pd.DataFrame(V, index=header_S)
-    V_df.to_csv('./log/V_'+timestr+'.csv', index=True, header=False)
+    V_df.to_csv('./log/V_' + timestr + '.csv', index=True, header=False)
+    Policy_df = pd.DataFrame(np.argmax(Q, axis=1), index=header_S, columns=None)
+    Policy_df.to_csv('./log/Policy_' + timestr + '.csv', index=True, header=False)
+    print(Policy_df)
 
     return
 
+
+def AverageReward(policy):
+    S_space = np.array(list(itertools.product(*np.repeat([np.arange(0, ARRIVAL_MAX + 1)], AGE_MAX, axis=0))))
+    A_space = np.array(list(itertools.combinations(range(1, AGE_MAX + 2), 2)))
+    A_space[:, 0] = A_space[:, 0] - 1
+    num_S = len(S_space)
+    num_A = len(A_space)
+    T = 10000
+
+    S = np.repeat([np.zeros(AGE_MAX)], T, axis=0).astype(int)
+    A = np.repeat([[0, 2]], T, axis=0)
+    R = np.repeat(0, 10000)
+    S[0, :] = S_space[random.randint(0, num_S), :]
+    A[0, :] = A_space[random.randint(0, num_A), :]
+    Sp, R[0] = sys_update(S[0, :].copy(), A[0, :])
+
+    for t in range(1, T):
+        S[t, :] = Sp
+        iSt = np.where(np.all(S_space == S[t, :], axis=1))[0].item()
+        A[t, :] = A_space[policy[iSt], :]
+        Sp, R[t] = sys_update(S[t, :].copy(), A[t, :])
+        if t % 1000 == 0:
+            print(t)
+
+    print(np.mean(R))
+    return
+
+
 if __name__ == "__main__":
-    RL_MonteCarloTabular(100000,100,0.3)
+    RL_MonteCarloTabular(10,100,0.3)
+
+    # df = pd.read_csv('./log/Policy_delta08.csv', header=None, index_col=0)
+    # p = df.to_numpy().flatten()-1
+    # print(p)
+    # AverageReward(p)
