@@ -168,11 +168,11 @@ if __name__ == "__main__":
     df08 = pd.read_csv('./log/Policy_20211229-085407.csv', header=None, index_col=0)
     p08 = df08.to_numpy().flatten()
     r2 = StepReward(p08)
+    print(r1 == r2)
+
     # AverageReward(p01)
     # AverageReward(p05)
     # AverageReward(p08)
-
-    print(r1 == r2)
 
     # df01 = pd.read_csv('./log/Policy_20211229-142856.csv', header=None, index_col=0)
     # p01 = df01.to_numpy().flatten()
