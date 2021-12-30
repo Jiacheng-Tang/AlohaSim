@@ -6,7 +6,7 @@ import pandas as pd
 import time
 
 """Define Variables"""
-AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 6, 0, 3
+AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 4, 0, 3
 THRESHOLD, STEPS = 3, 2
 MU, SIGMA = 2, 0.5
 
@@ -20,8 +20,8 @@ def sys_update(age, action):
         age[np.arange(t1, t2 - 1)] = 0
     else:
         reward = 0
-    reward = reward - sum(age[-max(AGE_MAX-t2+1, STEPS):])
-    age[t2-1:] = 0
+    reward = reward - sum(age[-max(AGE_MAX - t2 + 1, STEPS):])
+    age[t2 - 1:] = 0
     age[STEPS:] = age[0:-STEPS]
     age[0:STEPS] = np.round(arrival.rvs(STEPS))
 
@@ -140,31 +140,49 @@ def AverageReward(policy):
     return
 
 
+def StepReward(policy):
+    S_space = np.array(list(itertools.product(*np.repeat([np.arange(0, ARRIVAL_MAX + 1)], AGE_MAX, axis=0))))
+    A_space = np.array(list(itertools.combinations(range(1, AGE_MAX + 2), 2)))
+    A_space[:, 0] = A_space[:, 0] - 1
+    num_S = len(S_space)
+    reward = np.zeros(num_S)
+    for i in range(num_S):
+        reward[i] = sys_update(S_space[i,:].copy(), A_space[policy[i],:])[1]
+
+    print(reward)
+    return reward
+
+
 if __name__ == "__main__":
     # RL_MonteCarloTabular(0.1, 100000, 100, 0.3)
     # RL_MonteCarloTabular(0.5, 100000, 100, 0.3)
     # RL_MonteCarloTabular(0.8, 100000, 100, 0.3)
 
-    # df01 = pd.read_csv('./log/Policy_20211229-052255.csv', header=None, index_col=0)
+    df01 = pd.read_csv('./log/Policy_20211229-052255.csv', header=None, index_col=0)
+    p01 = df01.to_numpy().flatten()
+    r1 = StepReward(p01)
+
+    df05 = pd.read_csv('./log/Policy_20211229-070830.csv', header=None, index_col=0)
+    p05 = df05.to_numpy().flatten()
+
+    df08 = pd.read_csv('./log/Policy_20211229-085407.csv', header=None, index_col=0)
+    p08 = df08.to_numpy().flatten()
+    r2 = StepReward(p08)
+    # AverageReward(p01)
+    # AverageReward(p05)
+    # AverageReward(p08)
+
+    print(r1 == r2)
+
+    # df01 = pd.read_csv('./log/Policy_20211229-142856.csv', header=None, index_col=0)
     # p01 = df01.to_numpy().flatten()
     #
-    # df05 = pd.read_csv('./log/Policy_20211229-070830.csv', header=None, index_col=0)
+    # df05 = pd.read_csv('./log/Policy_20211229-172003.csv', header=None, index_col=0)
     # p05 = df05.to_numpy().flatten()
     #
-    # df08 = pd.read_csv('./log/Policy_20211229-085407.csv', header=None, index_col=0)
+    # df08 = pd.read_csv('./log/Policy_20211229-201243.csv', header=None, index_col=0)
     # p08 = df08.to_numpy().flatten()
     # AverageReward(p01)
     # AverageReward(p05)
     # AverageReward(p08)
 
-    df01 = pd.read_csv('./log/Policy_20211229-142856.csv', header=None, index_col=0)
-    p01 = df01.to_numpy().flatten()
-
-    df05 = pd.read_csv('./log/Policy_20211229-172003.csv', header=None, index_col=0)
-    p05 = df05.to_numpy().flatten()
-
-    df08 = pd.read_csv('./log/Policy_20211229-201243.csv', header=None, index_col=0)
-    p08 = df08.to_numpy().flatten()
-    AverageReward(p01)
-    AverageReward(p05)
-    AverageReward(p08)
