@@ -6,10 +6,9 @@ import pandas as pd
 import time
 
 """Define Variables"""
-AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 4, 0, 3
+AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 6, 0, 3
 THRESHOLD, STEPS = 3, 2
 MU, SIGMA = 2, 0.5
-DELTA = 0.8
 
 
 def sys_update(age, action):
@@ -18,26 +17,25 @@ def sys_update(age, action):
     t2 = action[1]
     if sum(age[np.arange(t1, t2 - 1)]) <= THRESHOLD:
         reward = sum((AGE_MAX - np.arange(t1, t2 - 1)) * age[np.arange(t1, t2 - 1)])
-        # print(reward)
         age[np.arange(t1, t2 - 1)] = 0
     else:
         reward = 0
-    # print(sum(age[-min(t2,steps):]))
-    reward = reward - sum(age[-min(t2, STEPS):])
+    reward = reward - sum(age[-max(AGE_MAX-t2+1, STEPS):])
+    age[t2-1:] = 0
     age[STEPS:] = age[0:-STEPS]
     age[0:STEPS] = np.round(arrival.rvs(STEPS))
 
-    # print(age, reward)
     return age, reward
 
 
-def RL_MonteCarloTabular(n_episode, T, epsilon):
+def RL_MonteCarloTabular(delta, n_episode, T, epsilon):
     """Define Variables"""
     S_space = np.array(list(itertools.product(*np.repeat([np.arange(0, ARRIVAL_MAX + 1)], AGE_MAX, axis=0))))
     A_space = np.array(list(itertools.combinations(range(1, AGE_MAX + 2), 2)))
     A_space[:, 0] = A_space[:, 0] - 1
     num_S = len(S_space)
     num_A = len(A_space)
+    # print(A_space)
 
     policy = np.tile(np.repeat(1 / num_A, num_A), (num_S, 1))
     Qn = np.zeros((num_S, num_A))
@@ -72,7 +70,7 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
         # print(SA)
         G = 0
         for t in range(T - 1, -1, -1):
-            G = DELTA * G + R[t]
+            G = delta * G + R[t]
             if not any(np.all((SA[0:t - 1, :] == SA[t, :]), axis=1)):
                 iSt = np.where(np.all(S_space == S[t, :], axis=1))[0].item()
                 iAt = np.where(np.all(A_space == A[t, :], axis=1))[0].item()
@@ -98,7 +96,6 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
             Qold = Q.copy()
             if Qerr < 0.001:
                 break
-    # print(A_space)
 
     header_A = ["--".join(items) for items in A_space.astype(str)]
     header_S = ["--".join(items) for items in S_space.astype(str)]
@@ -111,7 +108,6 @@ def RL_MonteCarloTabular(n_episode, T, epsilon):
     V_df.to_csv('./log/V_' + timestr + '.csv', index=True, header=False)
     Policy_df = pd.DataFrame(np.argmax(Q, axis=1), index=header_S, columns=None)
     Policy_df.to_csv('./log/Policy_' + timestr + '.csv', index=True, header=False)
-    print(Policy_df)
 
     return
 
@@ -120,13 +116,14 @@ def AverageReward(policy):
     S_space = np.array(list(itertools.product(*np.repeat([np.arange(0, ARRIVAL_MAX + 1)], AGE_MAX, axis=0))))
     A_space = np.array(list(itertools.combinations(range(1, AGE_MAX + 2), 2)))
     A_space[:, 0] = A_space[:, 0] - 1
+    # print(A_space)
     num_S = len(S_space)
     num_A = len(A_space)
-    T = 10000
+    T = 100000
 
     S = np.repeat([np.zeros(AGE_MAX)], T, axis=0).astype(int)
     A = np.repeat([[0, 2]], T, axis=0)
-    R = np.repeat(0, 10000)
+    R = np.repeat(0, T)
     S[0, :] = S_space[random.randint(0, num_S), :]
     A[0, :] = A_space[random.randint(0, num_A), :]
     Sp, R[0] = sys_update(S[0, :].copy(), A[0, :])
@@ -136,7 +133,7 @@ def AverageReward(policy):
         iSt = np.where(np.all(S_space == S[t, :], axis=1))[0].item()
         A[t, :] = A_space[policy[iSt], :]
         Sp, R[t] = sys_update(S[t, :].copy(), A[t, :])
-        if t % 1000 == 0:
+        if t % 10000 == 0:
             print(t)
 
     print(np.mean(R))
@@ -144,9 +141,30 @@ def AverageReward(policy):
 
 
 if __name__ == "__main__":
-    RL_MonteCarloTabular(10,100,0.3)
+    # RL_MonteCarloTabular(0.1, 100000, 100, 0.3)
+    # RL_MonteCarloTabular(0.5, 100000, 100, 0.3)
+    # RL_MonteCarloTabular(0.8, 100000, 100, 0.3)
 
-    # df = pd.read_csv('./log/Policy_delta08.csv', header=None, index_col=0)
-    # p = df.to_numpy().flatten()-1
-    # print(p)
-    # AverageReward(p)
+    # df01 = pd.read_csv('./log/Policy_20211229-052255.csv', header=None, index_col=0)
+    # p01 = df01.to_numpy().flatten()
+    #
+    # df05 = pd.read_csv('./log/Policy_20211229-070830.csv', header=None, index_col=0)
+    # p05 = df05.to_numpy().flatten()
+    #
+    # df08 = pd.read_csv('./log/Policy_20211229-085407.csv', header=None, index_col=0)
+    # p08 = df08.to_numpy().flatten()
+    # AverageReward(p01)
+    # AverageReward(p05)
+    # AverageReward(p08)
+
+    df01 = pd.read_csv('./log/Policy_20211229-142856.csv', header=None, index_col=0)
+    p01 = df01.to_numpy().flatten()
+
+    df05 = pd.read_csv('./log/Policy_20211229-172003.csv', header=None, index_col=0)
+    p05 = df05.to_numpy().flatten()
+
+    df08 = pd.read_csv('./log/Policy_20211229-201243.csv', header=None, index_col=0)
+    p08 = df08.to_numpy().flatten()
+    AverageReward(p01)
+    AverageReward(p05)
+    AverageReward(p08)
