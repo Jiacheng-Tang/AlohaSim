@@ -9,6 +9,8 @@ import time
 AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 4, 0, 3
 THRESHOLD, STEPS = 3, 2
 MU, SIGMA = 2, 0.5
+REWARD = 4 * np.power(0.5 * np.ones(AGE_MAX), np.arange(AGE_MAX))
+LOGPATH = './log/exp_age4/'
 
 
 def sys_update(age, action):
@@ -16,10 +18,12 @@ def sys_update(age, action):
     t1 = action[0]
     t2 = action[1]
     if sum(age[np.arange(t1, t2 - 1)]) <= THRESHOLD:
-        reward = sum((AGE_MAX - np.arange(t1, t2 - 1)) * age[np.arange(t1, t2 - 1)])
+        # print(sum(REWARD[np.arange(t1, t2 - 1)] * age[np.arange(t1, t2 - 1)]))
+        reward = sum(REWARD[np.arange(t1, t2 - 1)] * age[np.arange(t1, t2 - 1)])
         age[np.arange(t1, t2 - 1)] = 0
     else:
         reward = 0
+    # print(sum(age[-max(AGE_MAX - t2 + 1, STEPS):]))
     reward = reward - sum(age[-max(AGE_MAX - t2 + 1, STEPS):])
     age[t2 - 1:] = 0
     age[STEPS:] = age[0:-STEPS]
@@ -36,6 +40,7 @@ def RL_MonteCarloTabular(delta, n_episode, T, epsilon):
     num_S = len(S_space)
     num_A = len(A_space)
     # print(A_space)
+    # print(REWARD)
 
     policy = np.tile(np.repeat(1 / num_A, num_A), (num_S, 1))
     Qn = np.zeros((num_S, num_A))
@@ -47,11 +52,11 @@ def RL_MonteCarloTabular(delta, n_episode, T, epsilon):
         """Define state, action, and reward with exploring start"""
         S = np.repeat([np.zeros(AGE_MAX)], T, axis=0).astype(int)
         A = np.repeat([[0, 2]], T, axis=0)
-        R = np.repeat(0, T)
+        R = np.repeat(0.0, T)
         S[0, :] = S_space[random.randint(0, num_S), :]
         A[0, :] = A_space[random.randint(0, num_A), :]
         Sp, R[0] = sys_update(S[0, :].copy(), A[0, :])
-        # print(S[0,:], A[0,:], R[0])
+        # print(S[0, :], A[0, :], R[0])
 
         """Generate an episode following given policy"""
         for t in range(1, T):
@@ -101,13 +106,13 @@ def RL_MonteCarloTabular(delta, n_episode, T, epsilon):
     header_S = ["--".join(items) for items in S_space.astype(str)]
     timestr = time.strftime("%Y%m%d-%H%M%S")
     Q_df = pd.DataFrame(Q, index=header_S, columns=header_A)
-    Q_df.to_csv('./log/Q_' + timestr + '.csv', index=True, header=True)
+    Q_df.to_csv(LOGPATH + 'Q_' + timestr + '.csv', index=True, header=True)
     Qn_df = pd.DataFrame(Qn, index=header_S, columns=header_A)
-    Qn_df.to_csv('./log/Qn_' + timestr + '.csv', index=True, header=True)
+    Qn_df.to_csv(LOGPATH + 'Qn_' + timestr + '.csv', index=True, header=True)
     V_df = pd.DataFrame(V, index=header_S)
-    V_df.to_csv('./log/V_' + timestr + '.csv', index=True, header=False)
+    V_df.to_csv(LOGPATH + 'V_' + timestr + '.csv', index=True, header=False)
     Policy_df = pd.DataFrame(np.argmax(Q, axis=1), index=header_S, columns=None)
-    Policy_df.to_csv('./log/Policy_' + timestr + '.csv', index=True, header=False)
+    Policy_df.to_csv(LOGPATH + 'Policy_' + timestr + '.csv', index=True, header=False)
 
     return
 
@@ -147,29 +152,29 @@ def StepReward(policy):
     num_S = len(S_space)
     reward = np.zeros(num_S)
     for i in range(num_S):
-        reward[i] = sys_update(S_space[i,:].copy(), A_space[policy[i],:])[1]
+        reward[i] = sys_update(S_space[i, :].copy(), A_space[policy[i], :])[1]
 
     print(reward)
     return reward
 
 
 if __name__ == "__main__":
-    # RL_MonteCarloTabular(0.1, 100000, 100, 0.3)
-    # RL_MonteCarloTabular(0.5, 100000, 100, 0.3)
-    # RL_MonteCarloTabular(0.8, 100000, 100, 0.3)
+    RL_MonteCarloTabular(0.1, 100000, 100, 0.3)
+    RL_MonteCarloTabular(0.5, 100000, 100, 0.3)
+    RL_MonteCarloTabular(0.8, 100000, 100, 0.3)
 
-    df01 = pd.read_csv('./log/Policy_20211229-052255.csv', header=None, index_col=0)
-    p01 = df01.to_numpy().flatten()
-    r1 = StepReward(p01)
-
-    df05 = pd.read_csv('./log/Policy_20211229-070830.csv', header=None, index_col=0)
-    p05 = df05.to_numpy().flatten()
-
-    df08 = pd.read_csv('./log/Policy_20211229-085407.csv', header=None, index_col=0)
-    p08 = df08.to_numpy().flatten()
-    r2 = StepReward(p08)
-    print(r1 == r2)
-
+    # df01 = pd.read_csv('./log/Policy_20211229-052255.csv', header=None, index_col=0)
+    # p01 = df01.to_numpy().flatten()
+    # r1 = StepReward(p01)
+    #
+    # df05 = pd.read_csv('./log/Policy_20211229-070830.csv', header=None, index_col=0)
+    # p05 = df05.to_numpy().flatten()
+    #
+    # df08 = pd.read_csv('./log/Policy_20211229-085407.csv', header=None, index_col=0)
+    # p08 = df08.to_numpy().flatten()
+    # r2 = StepReward(p08)
+    # print(r1 == r2)
+    #
     # AverageReward(p01)
     # AverageReward(p05)
     # AverageReward(p08)
@@ -185,4 +190,3 @@ if __name__ == "__main__":
     # AverageReward(p01)
     # AverageReward(p05)
     # AverageReward(p08)
-
