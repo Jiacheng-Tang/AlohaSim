@@ -9,8 +9,8 @@ import time
 AGE_MAX, ARRIVAL_MIN, ARRIVAL_MAX = 4, 0, 3
 THRESHOLD, STEPS = 3, 2
 MU, SIGMA = 2, 0.5
-REWARD = 4 * np.power(0.8 * np.ones(AGE_MAX), np.arange(AGE_MAX))
-LOGPATH = './log/exp_age4_08/'
+REWARD = 4 * np.power(1 * np.ones(AGE_MAX), np.arange(AGE_MAX))
+LOGPATH = './log/exp_age4_10/'
 
 
 def sys_update(age, action):
